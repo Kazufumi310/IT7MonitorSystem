@@ -1,6 +1,10 @@
 #!/bin/bash
 
-ArduinoDir=/Users/sato/Documents/Arduino
+ArduinoDir=$ARDUINODIR
+if [ x$ArduinoDir = x ];then
+    echo set ARDUINODIR
+    exit 1
+fi
 
 prefix=FTPcontrol
 
