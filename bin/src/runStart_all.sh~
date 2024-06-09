@@ -1,0 +1,38 @@
+#!/bin/bash
+
+if [ $# -lt 1 ];then
+    echo "arg error."
+    exit 1
+fi
+mode=$1 
+nMode=3
+if [ $mode -lt 0 -o $mode -gt $nMode ];then
+    echo "strange mode : mode = $mode"
+fi
+
+progNameArr=("runStart" "testStart" "getData")
+prog=${progNameArr[${mode}]}
+
+if [  ];then # runStart or testStart
+if [ $# -ne 1 ];then 
+    echo "usage : runStart serial_number_of_IT"
+    echo "ex) runStart IT20240722_type2m"
+    exit 1;
+fi
+serial=$1
+
+if [ -e $serial ];then
+    echo "File named $serial already exsists."
+    exit 1;
+fi
+
+mkdir $serial
+for i in 2 3 4
+do
+    gnome-terminal -- bash -c "echo \"IPdigit = $i\";teensy_ls $i;teensy_get $i $serial/dev_$i; teensy_ls $i; bash"
+done
+
+for i in 2 3 4
+do
+    gnome-terminal -- bash -c "echo \"IPdigit = $i\";teensy.sh $i;teensy_run $i 1;teensy_ls $i; bash"
+done

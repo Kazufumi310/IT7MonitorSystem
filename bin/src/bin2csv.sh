@@ -4,6 +4,6 @@ if [ $# -ne 1 ];then
 fi
 bin=$1
 echo "converting $bin to CSV..."
-program=$IT7DIR/bin/src_files/Binary_converter.py
+program=$IT7DIR/bin/src/Binary_converter.py
 
 python $program $bin

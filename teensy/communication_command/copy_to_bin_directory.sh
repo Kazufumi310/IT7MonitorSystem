@@ -1,8 +1,10 @@
 #!/bin/bash
 
 cd ../../bin/
-for fil in ../teensy/communication_command/teensy_*.sh
+for fil in ../teensy/communication_command/*.sh 
 do
     base=`basename $fil .sh`
-    ln -s $fil $base
+    if [ $base != copy_to_bin_directory ];then
+	ln -s $fil $base
+    fi
 done
