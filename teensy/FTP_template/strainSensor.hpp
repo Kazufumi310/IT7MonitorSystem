@@ -106,6 +106,9 @@ void initADC() {
     //buffer.reserve(1024*500);
 
 //    sd.begin(SD_CONFIG);
+    for(int i=0;i<nGauges;i++){
+       pinMode(readPin[i],INPUT);
+    }
 
     adc->adc0->setAveraging(0); // set number of averages
     adc->adc0->setResolution(10); // set bits of resolution

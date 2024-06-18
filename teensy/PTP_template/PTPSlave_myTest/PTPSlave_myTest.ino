@@ -46,8 +46,23 @@ void setup()
   qindesign::network::EthernetIEEE1588.setChannelOutputPulseWidth(1, 25);
 }
 
+double logTime=0;
 void loop()
 {
   ptp.update();
   digitalWrite(13, ptp.getLockCount() > 5 ? HIGH : LOW);
+
+  double curTime=micros();
+  if(curTime>logTime){
+    logTime=micros()+5*1000000;
+    Serial.print("currentTime: ");
+    Serial.println(curTime);
+    Serial.println(ptp.getLockCount());
+    timespec ts;
+    qindesign::network::EthernetIEEE1588.readTimer(ts);
+    printTime(timespecToNanoTime(ts));
+
+  }
+
+
 }

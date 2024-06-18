@@ -42,8 +42,8 @@ fi
 for i in 2 3 4
 do
     if [ $mode -eq 2 ];then	 
-        echo gnome-terminal -- bash -c "echo \"IPdigit = $i\";teensy_ls $i;teensy_get $i $serial/dev_$i; teensy_ls $i; bash"
+        gnome-terminal -- bash -c "echo \"IPdigit = $i\";teensy_ls $i;teensy_get $i $serial/dev_$i; teensy_ls $i; bash"
     else
-	echo gnome-terminal -- bash -c "echo \"IPdigit = $i\";teensy_ls $i;teensy_run $i $runMode;teensy_ls $i; bash"
+	gnome-terminal -- bash -c "echo \"IPdigit = $i\";teensy_ls $i;teensy_run $i $runMode;teensy_ls $i; bash"
     fi
 done
