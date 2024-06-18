@@ -38,6 +38,7 @@ FtpServer ftpSrv; // Default command port is 21 ( !! without parenthesis !! )
 #define chipSelect SdioConfig(FIFO_SDIO)
 
 #include "sensors.hpp"
+#include "ptpfunction.hpp"
 
 
 // SDClass myfs; // com out by Sato
@@ -357,6 +358,8 @@ void setup()
   while (!Serial && millis() < 5000);
 
   delay(500);
+
+  initPTP();
 
   Serial.print(F("\nStarting FTP_Server_SDFAT2 on ")); Serial.print(BOARD_NAME);
   Serial.print(F(" with ")); Serial.println(SHIELD_TYPE);
