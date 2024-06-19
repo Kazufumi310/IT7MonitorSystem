@@ -124,7 +124,7 @@
     //IPAddress myIP(169, 254, 93, 13);
    IPAddress myIP(TEENSYIPADD);
     IPAddress myNetmask(255, 255, 0, 0);
-    IPAddress myGW(0,0,0,0);
+    IPAddress myGW(192,168,11,1);
     //IPAddress mydnsServer(192, 168, 2, 1);
     IPAddress mydnsServer(8, 8, 8, 8);
   #endif

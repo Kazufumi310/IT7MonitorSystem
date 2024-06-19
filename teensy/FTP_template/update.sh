@@ -26,5 +26,7 @@ do
     cp FTP_template.cc $dirName/${prefix}_${sensorName}.ino
     cp ${sensorName}Sensor.hpp $dirName/sensors.hpp
     cat defines.h | sed 's:IPLASTDIGIT:'${IPDigit}':' > $dirName/defines.h
+    cp ../PTP_template/ptpfunction.hpp $dirName/
+    
     i=`expr $i + 1`
 done

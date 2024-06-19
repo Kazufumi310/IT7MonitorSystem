@@ -413,8 +413,29 @@ void setup()
 **                                                                            **
 *******************************************************************************/
 
+double logTime=0;
 void loop()
 {
+ doPTP();
+  /*
+  ptp.update();
+  {
+    double curTime=micros();
+    //if(startTime==0) startTime=curTime;
+ 
+    if(curTime>logTime){
+      logTime=micros()+5*1000000;
+      Serial.print("currentTime: ");
+      Serial.println(curTime);
+      Serial.println(ptp.getLockCount());
+      timespec ts;
+      qindesign::network::EthernetIEEE1588.readTimer(ts);
+      printTime(timespecToNanoTime(ts));
+
+    }
+  }
+  */
+
   ftpSrv.service();
 
   char testReqFile[] = "data/test.request";
