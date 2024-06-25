@@ -8,9 +8,9 @@ fi
 
 prefix=FTPcontrol
 
-nSensor=3
-IPDigitArr=(2 3 4)
-sensorNameArr=(pressure1 pressure2 strain)
+nSensor=5
+IPDigitArr=(2 3 4 5 6)
+sensorNameArr=(pressure1 pressure2 strain controller alternativeOscillo)
 
 i=0
 while [ $i -lt $nSensor ]
@@ -27,6 +27,9 @@ do
     cp ${sensorName}Sensor.hpp $dirName/sensors.hpp
     cat defines.h | sed 's:IPLASTDIGIT:'${IPDigit}':' > $dirName/defines.h
     cp ../PTP_template/ptpfunction.hpp $dirName/
+    if [ $IPDigit -ne 5 ];then
+	cp pressurestrainAction.hpp $dirName/
+    fi
     
     i=`expr $i + 1`
 done

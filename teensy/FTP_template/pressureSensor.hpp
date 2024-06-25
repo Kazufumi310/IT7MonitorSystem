@@ -172,3 +172,10 @@ void initADC(){
   adc.adc0->setSamplingSpeed(ADC_SAMPLING_SPEED::VERY_HIGH_SPEED);
   
 }
+
+#include "pressurestrainAction.hpp"
+
+void doAction(){
+  doPressureStrainAction();
+}
+

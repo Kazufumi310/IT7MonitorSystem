@@ -1,0 +1,58 @@
+Arduino library directory
+/Users/sato/Documents/Arduino/libraries/
+
+1) Add teensyduino to Board Manager
+ref: https://www.pjrc.com/teensy/td_download.html
+1-1) open ArduinoIDE preference, and add "https://www.pjrc.com/teensy/package_teensy_index.json" on Additional boards manager URLs.
+1-2) from ArduinoIDE board manager, install teensy -> ver1.59.0
+1-3) install teensy loader (+ udev rules if linux), according to https://www.pjrc.com/teensy/loader_linux.html
+
+2) install FTP_Server_Teensy v1.20 from ArduinoIDE library manager -> v1.2.0
+* QNEthernet, Ethernet_Generic, and Functional-Vlpp will be installed automatically.
+
+3) Edit FTP_Server_Teensy 
+  to use Arduino SDFat library (not teensyduino SDFat, it is a bit old), modify FTP_Server_Teensy41.hpp in Arduino library directory as below
+
+#elif (FTP_FILESYST == FTP_SDFAT2)
+//  #include <SD.h> // com out by Sato.
+  #include <SdFat.h>
+//  #define FTP_FS            SD.sdfs // com out by Sato
+  #define FTP_FS            SD // add by Sato
+  #define FTP_FILE          SdFile
+  #define FTP_DIR           SdFile
+  SdFat FTP_FS; // add by Sato
+#endif
+
+4) install new SdFat library
+4-1) from Library Manager, search for SdFat -> SdFat by Bill Greiman will be found.
+4-2) select and install v2.2.2 (not latest one).
+
+5) install Libraries for PTP
+ref: https://github.com/IMS-AS-LUH/t41-ptp/tree/main
+5-1) Download a QNEthernet branch for PTP 
+      git clone https://github.com/HedgeHawk/QNEthernet.git
+5-2) after taking a backup of original QNEthernet in Arduino library directory, then delete it.
+5-3) copy the QNEthernet directory obtained from github to Arduino library directory.
+5-4) Download ptp library code.
+      git clone https://github.com/IMS-AS-LUH/t41-ptp.git
+5-5) copy the t41-ptp directory to Arduino library.
+5-6) relaunch ArduinoIDE
+5-7) check that you can find t41-ptp examples in File->Example. confirm the example can be compiled.  
+5-8) edit src/ptp/ptp-base.h in Arduino library. Add two lines to use printTime function in main program.
+     void printTime(const NanoTime t,char* buf=0);
+     NanoTime timespecToNanoTime(const timespec &tm);     
+
+5-9) edit printTime function in src/ptp/ptp-base.cpp in Arduino library, in order to print into file. 
+       if(buf==0){
+        Serial.printf("%02d.%02d.%04d %02d:%02d:%02d::%03d:%03d:%03d\n", tme.Day, tme.Month, 1970 + tme.Year, tme.Hour, tme.Minute, tme.Second, ms, us, ns);
+    	}else{
+      	sprintf("%02d.%02d.%04d %02d:%02d:%02d::%03d:%03d:%03d\n", tme.Day, tme.Month, 1970 + tme.Year, tme.Hour, tme.Minute, tme.Second, ms, us, ns);
+	}
+
+
+6) install lftp for FTP communication
+   6-1) install lftp by using MacPorts, apt, etc., regarding to your OS.
+   6-2) make .lftprc in your home directory, and write in it as below. With this, FTP does not wait reconnection. 
+      set net:reconnect-interval-base 0
+
+      

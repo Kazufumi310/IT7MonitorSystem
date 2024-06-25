@@ -18,10 +18,14 @@ FsFile timingFile;
 char timingFileName[32]={"data/timing.csv"};
 
 bool ptp_notYet = true;
-void doPTP(){
+void doPTP(bool init = false){
   static double endTime=-1;
   static double logTime=-1;
   static double startTime=-1;
+
+  if(init){
+    endTime = logTime = startTime = -1;
+  }
 
   double curTime=micros();
   if(endTime<0){

@@ -16,7 +16,7 @@
 // Size to log 10 byte lines at 25 kHz for more than ten minutes.
 #define LOG_FILE_SIZE 200 * 1024 //200 * 25000 * 600  // 150,000,000 bytes.
 
-const uint8_t DaqTime=20;
+const uint8_t DaqTime=10;
 
 //#define LOG_FILENAME "SdioLogger.csv"
 // Log file base name.  Must be six characters or less.
@@ -25,18 +25,9 @@ const uint8_t DaqTime=20;
 //const uint32_t RecordTime= 1000000 * 120; //in micros
 const uint32_t RecordTime= 1000000 * 10; //for test. in micros
 
-//uint resetTime= 6000;
-//const int readPin = A0; // ADC0
-//const int readPin2 = A1; // ADC0
-//const int readPin3 = A2; // ADC0
-//const int readPin4 = A3; // ADC0
-//int adcvalue;
-//int adcvalue2;
-//int adcvalue3;
-//int adcvalue4;
 
-const int nGauges = 8;
-const int readPin[] = {A0,A1,A2,A3,A4,A5,A6,A7}; 
+const int nGauges = 4;
+const int readPin[] = {A0,A1,A2,A3};
 
 //SdFs sd;
 FsFile file;
@@ -54,24 +45,7 @@ const uint8_t BASE_NAME_SIZE = sizeof(FILE_BASE_NAME) - 1;
 char fileName[32] = FILE_BASE_NAME "00.csv";
 
 void logData() {
-/*
-    logTime = micros() + DaqTime;
 
-    buffer += micros()-samplingTime;
-    buffer += ",";
-    buffer += adc->adc0->analogRead(readPin);
-    buffer += ",";
-    buffer += adc->adc0->analogRead(readPin2);
-    buffer += ",";
-    buffer += adc->adc0->analogRead(readPin3);
-    buffer += ",";
-    buffer += adc->adc0->analogRead(readPin4);
-    buffer += "\n";
-
-    digitalWriteFast(LED_BUILTIN, !digitalReadFast(LED_BUILTIN));
-    while (micros() < logTime) {
-    }
-*/
     logTime = micros() + DaqTime;
     
     file.print(micros()-samplingTime);
@@ -80,15 +54,6 @@ void logData() {
       file.print(adc->adc0->analogRead(readPin[i]));
     }
     file.println("");
-//    file.write(",");
-//    file.print(adc->adc0->analogRead(readPin));
-//    file.write(",");
-//    file.print(adc->adc0->analogRead(readPin2));
-//    file.write(",");
-//    file.print(adc->adc0->analogRead(readPin3));
-//    file.write(",");
-//    file.println(adc->adc0->analogRead(readPin4));
-    
  
     //digitalWriteFast(LED_BUILTIN, !digitalReadFast(LED_BUILTIN));
     while (micros() < logTime) {
@@ -100,12 +65,6 @@ void logData() {
 
 
 void initADC() {
-  //Serial.begin(9600);
-  //  pinMode(LED_BUILTIN, OUTPUT);
-
-    //buffer.reserve(1024*500);
-
-//    sd.begin(SD_CONFIG);
     for(int i=0;i<nGauges;i++){
        pinMode(readPin[i],INPUT);
     }
@@ -115,10 +74,6 @@ void initADC() {
     adc->adc0->setConversionSpeed(ADC_CONVERSION_SPEED::VERY_HIGH_SPEED); // change the conversion speed
     // it can be any of the ADC_MED_SPEED enum: VERY_LOW_SPEED, LOW_SPEED, MED_SPEED, HIGH_SPEED or VERY_HIGH_SPEED
     adc->adc0->setSamplingSpeed(ADC_SAMPLING_SPEED::HIGH_SPEED); // change the sampling speed   
-
-// Start time.
-//logTime = micros();
-//Serial.println("Starting");
 }
 
 void takeADCData(int RecordTime){
@@ -136,25 +91,15 @@ void takeADCData(int RecordTime){
   file.open(fileName, O_WRONLY | O_CREAT | O_EXCL);
   file.preAllocate(LOG_FILE_SIZE);
 
-  //while (micros()<=1e6) {
-   // ;
-  //}
-
   samplingTime = micros();
   Serial.print("sampling start time: ");
   Serial.println(samplingTime);
 
   while ((micros()-samplingTime)<=RecordTime) {
-  logData();
-
+    logData();
   }
   Serial.print("sampling end time: ");
   Serial.println(micros());
-//  Serial.print("Buffer Size: ");
-//  Serial.println(sizeof(buffer));
-
-  //file.print(buffer);
-  //buffer.remove(0);
   
   Serial.println("finishing... ");
   file.truncate();
