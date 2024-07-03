@@ -37,9 +37,8 @@ FtpServer ftpSrv; // Default command port is 21 ( !! without parenthesis !! )
 // const int chipSelect = BUILTIN_SDCARD;    //10; // com out by Sato
 #define chipSelect SdioConfig(FIFO_SDIO)
 
-#include "sensors.hpp"
 #include "ptpfunction.hpp"
-
+#include "sensors.hpp"
 
 // SDClass myfs; // com out by Sato
 

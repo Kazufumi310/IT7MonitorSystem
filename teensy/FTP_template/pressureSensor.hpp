@@ -127,8 +127,13 @@ void takeADCData(int RecordTime){
   if (!file.preAllocate(PRE_ALLOCATE_SIZE)) {
     SD.errorHalt("file.preAllocate failed");
   }
-  rb.begin(&file);
 
+#ifdef USINGPTP
+  recordDAQTime("DAQ_start: ");
+#endif
+
+
+  rb.begin(&file);
   startDma();
   uint32_t samplingTime = micros();
   while ((micros()-samplingTime)<=RecordTime) {
@@ -146,6 +151,11 @@ void takeADCData(int RecordTime){
   digitalWriteFast(LED_BUILTIN, !digitalReadFast(LED_BUILTIN));
 
   stopDma();
+
+#ifdef USINGPTP
+  recordDAQTime("DAQ_end: ");
+#endif
+
   if (!rb.sync()) {
     file.close();
   }
@@ -153,6 +163,7 @@ void takeADCData(int RecordTime){
   file.truncate();
 
   file.close();
+
 
 //  static int ncalled = 0;
 //  ncalled++;

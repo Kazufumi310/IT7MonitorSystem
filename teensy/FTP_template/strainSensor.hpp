@@ -140,6 +140,9 @@ void takeADCData(int RecordTime){
    // ;
   //}
 
+#ifdef USINGPTP
+  recordDAQTime("DAQ_start: ");
+#endif
   samplingTime = micros();
   Serial.print("sampling start time: ");
   Serial.println(samplingTime);
@@ -148,6 +151,9 @@ void takeADCData(int RecordTime){
   logData();
 
   }
+#ifdef USINGPTP
+  recordDAQTime("DAQ_end: ");
+#endif
   Serial.print("sampling end time: ");
   Serial.println(micros());
 //  Serial.print("Buffer Size: ");
