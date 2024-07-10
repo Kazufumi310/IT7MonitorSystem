@@ -1,0 +1,11 @@
+# for tourmaline sensor
+unit MPa
+nCh 1
+# INA129 gain = 1 + 49.4 kOhm / R. R = 5 kOhm 
+gain 10.
+# 3.3V / 10 bit
+ADC2mV 3.2226562
+# 0.953 mV/bar. convert to MPa unit.
+mV2val 0.10493179
+# default is the number of ADC cylce. 1 cycle is 1.28 usec.
+rawtime2sec 1.28e-6

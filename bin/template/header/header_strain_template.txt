@@ -1,0 +1,13 @@
+# for tourmaline sensor
+unit MPa
+nCh 8
+# INA821 gain = 1 + 49.4 kOhm / R. R = 500 Ohm 
+gain 100. 100. 100. 100. 100. 100. 100. 100.
+# 3.3V / 10 bit
+ADC2mV 3.2226562 3.2226562 3.2226562 3.2226562 3.2226562 3.2226562 3.2226562 3.2226562
+# strain  = 4 / Vin(~5V) / GaugeFactor(~2) * Vmeas
+#mV2val 0.0004 0.0004 0.0004 0.0004 0.0004 0.0004 0.0004 0.0004
+#if set to zero, more accurate calculation will be used.
+mV2val 0 0 0 0 0 0 0 0 
+# data is already usec unit. just convert usec -> sec.
+rawtime2sec 1e-6 

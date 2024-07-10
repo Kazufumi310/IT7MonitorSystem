@@ -13,6 +13,7 @@ bin2csv $bin
 echo "convert from $csv to $root"
 
 rootCode=$IT7DIR/bin/src/csv2root_KELLERPressure.C
+echo $rootCode
 
 root -b <<EOF
 .L $rootCode
