@@ -7,6 +7,7 @@ odirname=( pressure1 pressure2 strain tourmaline accelerometer )
 
 for i in `seq 0 4`
 do
+   
     odir=${odirname[${i}]}
     echo $odir
     if [ ! -e $odir ];then
@@ -14,6 +15,14 @@ do
        continue
     fi
     cd $odir;
+
+    if [ ${mode[${i}]} -eq 1 ];then
+	for bin in *.bin
+	do
+	    bin2csv $bin
+	done
+    fi
+    
     nT=`ls *.csv *.txt 2>/dev/null | grep timing | wc -l`
     nH=`ls *.csv *.txt 2>/dev/null | grep header | wc -l`
     if [ $nH -eq 0 ];then
