@@ -1,3 +1,4 @@
+
 class Header{
  public:
   Header();
@@ -9,12 +10,27 @@ class Header{
   double mV2val[ARRSIZE];
   double gain[ARRSIZE];
   double rawtime2sec;
+  std::vector<double> DAQ_start_date_vec;
+  std::vector<double> DAQ_start_clock_vec;
+  std::vector<double> DAQ_end_date_vec;
+  std::vector<double> DAQ_end_clock_vec;
+  std::vector<double> PTP_calib_date_vec;
+  std::vector<double> PTP_calib_clock_vec;
+
   double DAQ_start_date;
   double DAQ_start_clock;
   double DAQ_end_date;
   double DAQ_end_clock;
   double PTP_calib_date;
   double PTP_calib_clock;
+
+  void setNBack(int nback){
+    nBackDAQ = nback;
+  }
+  void setNBack(int nback1,int nback2){
+    nBackDAQ = nback1;
+    nBackPTP = nback1;
+  }
 
   void readSettingFile(std::string headerfile,std::string timingfile){
     readHeaderFile(headerfile);
@@ -34,9 +50,12 @@ class Header{
   void readTimingFile(std::string timingfile);
   void branch();
   TTree* trout;
+  int nBackDAQ;
+  int nBackPTP;
 };
 
 Header::Header(){
+  nBackDAQ = nBackPTP = 0;
   nCh = 0;
   trout = 0;
   for(int i=0;i<ARRSIZE;i++){
@@ -44,12 +63,21 @@ Header::Header(){
     ADC2mV[i] = mV2val[i] = 0;
   }
   rawtime2sec = 1;
-  DAQ_start_date = 0;
-  DAQ_start_clock = 0;
-  DAQ_end_date = 0;
-  DAQ_end_clock = 0;
-  PTP_calib_date = 0;
-  PTP_calib_clock = 0;
+  DAQ_start_date_vec.clear();
+  DAQ_start_clock_vec.clear();
+  DAQ_end_date_vec.clear();
+  DAQ_end_clock_vec.clear();
+  PTP_calib_date_vec.clear();
+  PTP_calib_clock_vec.clear();
+  double *val[6] = {
+    &DAQ_start_date,
+    &DAQ_start_clock,
+    &DAQ_end_date,
+    &DAQ_end_clock,
+    &PTP_calib_date,
+    &PTP_calib_clock
+  };
+  for(int i=0;i<6;i++) *val[i] = 0;
 }
 
 void Header::readHeaderFile(std::string headerfile){
@@ -102,7 +130,9 @@ void Header::readTimingFile(std::string timingfile){
   if(!ifs){
     std::cout<<"WARNING : can't find timing file named "<<timingfile<<std::endl;
     std::cout<<"The \"date\" should be no meaning value."<<std::endl;
+    return;
   }
+  bool inPTPAdjust = false;
   std::string line;
   while(std::getline(ifs,line)){
     if(line[0]=='#') continue; // comment
@@ -115,23 +145,76 @@ void Header::readTimingFile(std::string timingfile){
     ss>>first;
     if(first=="micros") continue; // header
     if(first=="DAQ_start:"){
-      ss>>DAQ_start_clock;
-      DAQ_start_clock /= 1e6; // usec to sec
-      ss>>DAQ_start_date;
-      DAQ_start_date /= 1e9; //nsec to sec
+      inPTPAdjust = false;
+      double val;
+      ss>>val;
+      val /= 1e6; // usec to sec
+      DAQ_start_clock_vec.push_back(val);
+      ss>>val;
+      val /= 1e9; //nsec to sec
+      DAQ_start_date_vec.push_back(val);
     }else if(first=="DAQ_end:"){
-      ss>>DAQ_end_clock;
-      DAQ_end_clock /= 1e6; // usec to sec
-      ss>>DAQ_end_date;
-      DAQ_end_date /= 1e9; // nsec to sec
+      inPTPAdjust = false;
+      double val;
+      ss>>val;
+      val /= 1e6; // usec to sec
+      DAQ_end_clock_vec.push_back(val);
+      ss>>val;
+      val /= 1e9; // nsec to sec
+      DAQ_end_date_vec.push_back(val);
     }else if(first[0]>='0' && first[0]<='9'){
-      PTP_calib_clock = atof(first.c_str());
-      PTP_calib_clock /= 1e6; // usec to sec
-      ss>>PTP_calib_date;
-      PTP_calib_date /= 1e9; // nsec to sec
+      double val;
+      val = atof(first.c_str());
+      val /= 1e6; // usec to sec
+      if(inPTPAdjust) PTP_calib_clock_vec.back() = val;
+      else PTP_calib_clock_vec.push_back(val);
+      
+      ss>>val;
+      val /= 1e9; // nsec to sec
+      if(inPTPAdjust) PTP_calib_date_vec.back() = val;
+      else PTP_calib_date_vec.push_back(val);
+
+      inPTPAdjust = true;
     }else{
       std::cout<<"unexpected description in timing file : "<<line<<std::endl;
       continue;
+    }
+  }
+
+  if(nBackDAQ==0&&nBackPTP==0){
+    DAQ_start_date = DAQ_start_date_vec.back();
+    DAQ_start_clock= DAQ_start_clock_vec.back();
+    DAQ_end_date= DAQ_end_date_vec.back();
+    DAQ_end_clock= DAQ_end_clock_vec.back();
+    PTP_calib_date= PTP_calib_date_vec.back();
+    PTP_calib_clock= PTP_calib_clock_vec.back();
+  }else{
+    double *val[6] = {
+      &DAQ_start_date,
+      &DAQ_start_clock,
+      &DAQ_end_date,
+      &DAQ_end_clock,
+      &PTP_calib_date,
+      &PTP_calib_clock
+    };
+    std::vector<double> *vec[6] = {
+      &DAQ_start_date_vec,
+      &DAQ_start_clock_vec,
+      &DAQ_end_date_vec,
+      &DAQ_end_clock_vec,
+      &PTP_calib_date_vec,
+      &PTP_calib_clock_vec,
+    };
+    for(int i=0;i<6;i++){
+      int nBack = (i<4)?nBackDAQ:nBackPTP;
+      int I = nBack+vec[i]->size()-1;
+      if(I>=0){
+	*(val[i]) = vec[i]->at(I);
+      }else{
+	std::cout<<"WARNING: nBack is specified to be "<<nBack<<", though timing information has only "<<vec[i]->size()<<" entries."<<std::endl;
+	std::cout<<"assumbe nBack = 0."<<std::endl;
+	*(val[i]) = vec[i]->back();
+      }
     }
   }
 }
@@ -303,7 +386,8 @@ class TourmalineData : public BaseData{
 };
 
 void TourmalineData::discardHeader(std::ifstream& ifs){
-  ; // no header
+  std::string line;
+  std::getline(ifs,line); // the 1st line is a header.
 }
 
 void TourmalineData::readOneLine(std::string line){
@@ -313,12 +397,13 @@ void TourmalineData::readOneLine(std::string line){
     ss>>ADC[nCh];
     if(ss) nCh++;
   }
-  rawtime+=1; 
+  rawtime+=1;
 }
 
 bool TourmalineData::convert(Header &header){
   if(nCh != header.nCh){
-    std::cout<<"WARNING: #channels written in data file != that written in header"<<std::endl;
+    std::cout<<"WARNING: #channels written in data file != that written in header "<<nCh<<" "<<header.nCh<<std::endl;
+    exit(1);
     return false;
   }
   
@@ -401,22 +486,45 @@ enum{
 };
 
 void csv2root(std::string csvfile, std::string headerfile, std::string timingfile,int mode){
+
+  std::cout<<"input data file: "<<csvfile<<std::endl;
+  std::cout<<"input header file: "<<headerfile<<std::endl;
+  std::cout<<"input timing file: "<<timingfile<<std::endl;
+  
   BaseData *data;
   if(mode==KELLER){
+    std::cout<<"preaparing to read Keller data"<<std::endl;
     data = new KellerData();
   }else if(mode==STRAIN){
+    std::cout<<"preaparing to read strain data"<<std::endl;
     data = new StrainData();
   }else if(mode==TOURMALINE){
+    std::cout<<"preaparing to read tourmaline data"<<std::endl;
     data = new TourmalineData();
   }else if(mode==ACCELEROMETER){
+    std::cout<<"preaparing to read accelerometer data"<<std::endl;
     data = new AccelerometerData();
   }else{
     std::cout<<"Data type "<<mode<<" is not supported"<<std::endl;
     return;
   }
 
-  
-  std::string rootfile = MyTools::sed(csvfile,".csv",".root");
+  std::string rootfile;
+  auto periodPos = csvfile.find_last_of(".");
+  if(periodPos==std::string::npos){
+    std::cout<<"error. input file has no extension"<<std::endl;
+    exit(1);
+  }
+  std::string inputExtension = csvfile.substr(periodPos);
+  if(inputExtension==".csv"){
+    rootfile= MyTools::sed(csvfile,".csv",".root");
+  }else if(inputExtension==".txt"){
+    rootfile= MyTools::sed(csvfile,".txt",".root");
+  }else{
+    std::cout<<"error. The extension "<<inputExtension<<" is not supported as an input file."<<std::endl;
+    exit(1);
+  }
+  std::cout<<"output root file: "<<rootfile<<std::endl;  
   TFile fout(rootfile.c_str(),"recreate");
 
   TTree *trheader = new TTree("trheader","");

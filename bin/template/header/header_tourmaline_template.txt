@@ -3,7 +3,7 @@ unit MPa
 nCh 4
 gain 10. 10. 10. 10.
 # rawdata is already unit of V. just convert to mV.
-ADC2mV 1e-3 1e-3 1e-3 1e-3
+ADC2mV 1e3 1e3 1e3 1e3
 # from calibration data 20160115
 mV2val 0.014463520 0.014352123 0.014448365 0.014865804
 # this depends on scopecorder setting for horizontal range and sampling speed
