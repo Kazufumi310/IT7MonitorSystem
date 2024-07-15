@@ -42,7 +42,7 @@ device=( notused mainPC pressure1 pressure2 strain )
 for i in 2 3 4
 do
     if [ $mode -eq 2 ];then	 
-        gnome-terminal -- bash -c "echo \"IPdigit = $i\";teensy_ls $i;teensy_get $i $serial/${device[{$i}]}; teensy_ls $i; bash"
+        gnome-terminal -- bash -c "echo \"IPdigit = $i\";teensy_ls $i;teensy_get $i $serial/${device[${i}]}; teensy_ls $i; bash"
     else
 	gnome-terminal -- bash -c "echo \"IPdigit = $i\";teensy_ls $i;teensy_run $i $runMode;teensy_ls $i; bash"
     fi
