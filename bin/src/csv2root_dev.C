@@ -85,6 +85,8 @@ void Header::readHeaderFile(std::string headerfile){
   if(!ifs){
     std::cout<<"ERROR : can't find header file named "<<headerfile<<std::endl;
     exit(1);
+  }else{
+    std::cout<<"reading sensor information from "<<headerfile<<std::endl;
   }
   std::string line;
   while(std::getline(ifs,line)){
@@ -126,17 +128,21 @@ void Header::readHeaderFile(std::string headerfile){
 
 
 void Header::readTimingFile(std::string timingfile){
+  
   std::ifstream ifs(timingfile);
   if(!ifs){
     std::cout<<"WARNING : can't find timing file named "<<timingfile<<std::endl;
     std::cout<<"The \"date\" should be no meaning value."<<std::endl;
     return;
-  }
+  }else{
+    std::cout<<"reading timing information from "<<timingfile<<std::endl;
+  }    
   bool inPTPAdjust = false;
   std::string line;
   while(std::getline(ifs,line)){
     if(line[0]=='#') continue; // comment
-    
+
+    std::cout<<"line: "<<line<<std::endl;
     for(int i=0;i<line.length();i++){
       if(line[i]==',') line[i] = ' ';
     }
@@ -217,6 +223,12 @@ void Header::readTimingFile(std::string timingfile){
       }
     }
   }
+  std::cout<<"DAQ_start_date: "<<DAQ_start_date <<std::endl; 
+  std::cout<<"DAQ_start_clock: "<<DAQ_start_clock<<std::endl; 
+  std::cout<<"DAQ_end_date: "<<DAQ_end_date<<std::endl; 
+  std::cout<<"DAQ_end_clock: "<<DAQ_end_clock<<std::endl; 
+  std::cout<<"PTP_calib_date: "<<PTP_calib_date<<std::endl; 
+  std::cout<<"PTP_calib_clock: "<<PTP_calib_clock<<std::endl; 
 }
 
 void Header::branch(){
@@ -532,6 +544,7 @@ void csv2root(std::string csvfile, std::string headerfile, std::string timingfil
   header.setTree(trheader);
   header.readSettingFile(headerfile,timingfile);
 
+  std::cout<<"here2"<<std::endl;
   TTree *trout = new TTree("tr","");
   data->setTree(trout);
   data->readDataFile(csvfile,header);
