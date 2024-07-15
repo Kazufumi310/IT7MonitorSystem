@@ -33,3 +33,8 @@ do
     
     i=`expr $i + 1`
 done
+
+if [ ! -e $ArduinoDir/MS5837_Read_Ethernet_Refresh_SD ];then
+    mkdir $ArduinoDir/MS5837_Read_Ethernet_Refresh_SD
+fi
+cp  MS5837_Read_Ethernet_Refresh_SD.cc $ArduinoDir/MS5837_Read_Ethernet_Refresh_SD/MS5837_Read_Ethernet_Refresh_SD.ino
