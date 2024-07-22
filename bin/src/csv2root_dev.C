@@ -150,7 +150,29 @@ void Header::readTimingFile(std::string timingfile){
     std::string first;
     ss>>first;
     if(first=="micros") continue; // header
-    if(first=="DAQ_start:"){
+    if(first=="TTL"){ // toumaline sensor
+      inPTPAdjust = false;
+      std::string trash;
+      ss>>trash>>trash>>trash;
+      double val;
+      ss>>val;
+      val /= 1e6; // usec to sec
+      DAQ_start_clock_vec.push_back(val);
+    }else if(first=="Daq"){ // accelerometer 
+      inPTPAdjust = false;
+      std::string str;
+      ss>>str;
+      if(str=="finish"){
+	double val;
+	ss>>val;
+	DAQ_end_date_vec.push_back(val);
+      }else{
+	ss>>str>>str;
+	double val;
+	ss>>val;
+	DAQ_start_date_vec.push_back(val);
+      }
+    }elseif(first=="DAQ_start:"){
       inPTPAdjust = false;
       double val;
       ss>>val;
@@ -188,12 +210,18 @@ void Header::readTimingFile(std::string timingfile){
   }
 
   if(nBackDAQ==0&&nBackPTP==0){
-    DAQ_start_date = DAQ_start_date_vec.back();
-    DAQ_start_clock= DAQ_start_clock_vec.back();
-    DAQ_end_date= DAQ_end_date_vec.back();
-    DAQ_end_clock= DAQ_end_clock_vec.back();
-    PTP_calib_date= PTP_calib_date_vec.back();
-    PTP_calib_clock= PTP_calib_clock_vec.back();
+    if(!DAQ_start_date_vec.empty())
+      DAQ_start_date = DAQ_start_date_vec.back();
+    if(!DAQ_start_clock_vec.empty())
+      DAQ_start_clock= DAQ_start_clock_vec.back();
+    if(!DAQ_end_date_vec.empty())
+      DAQ_end_date= DAQ_end_date_vec.back();
+    if(!DAQ_end_clock_vec.empty())
+      DAQ_end_clock= DAQ_end_clock_vec.back();
+    if(!PTP_calib_date_vec.empty())
+      PTP_calib_date= PTP_calib_date_vec.back();
+    if(!PTP_calib_clock_vec.empty())
+      PTP_calib_clock= PTP_calib_clock_vec.back();
   }else{
     double *val[6] = {
       &DAQ_start_date,
@@ -219,10 +247,15 @@ void Header::readTimingFile(std::string timingfile){
       }else{
 	std::cout<<"WARNING: nBack is specified to be "<<nBack<<", though timing information has only "<<vec[i]->size()<<" entries."<<std::endl;
 	std::cout<<"assumbe nBack = 0."<<std::endl;
-	*(val[i]) = vec[i]->back();
+	*(val[i]) = (vec[i]->empty()) ? 0 : vec[i]->back();
       }
     }
   }
+  if(DAQ_start_date==0 && DAQ_start_clock!=0 && PTP_calib_date !=0){
+    // should be tourmaline data
+    DAQ_start_date = DAQ_start_clock - PTP_calib_clock + PTP_calib_date;
+  }
+
   std::cout<<"DAQ_start_date: "<<DAQ_start_date <<std::endl; 
   std::cout<<"DAQ_start_clock: "<<DAQ_start_clock<<std::endl; 
   std::cout<<"DAQ_end_date: "<<DAQ_end_date<<std::endl; 

@@ -16,12 +16,27 @@ do
     fi
     cd $odir;
 
-    if [ ${mode[${i}]} -eq 1 ];then
+    if [ ${mode[${i}]} -eq 1 ];then #Keller
 	for bin in *.bin
 	do
 	    bin2csv $bin
 	done
     fi
+
+    if [ ${mode[${i}]} -eq 3 ];then #Tourmaline
+	for mat in *.MAT
+	do
+	    mat2csv $mat
+	done
+
+	cat Data*.csv >> timing.csv
+	rm -fr Data*.csv
+    fi
+
+    if [ ${mode[${i}]} -eq 4 ];then #Accelerometer
+	grep Daq IT7_acc_stderr_*.csv >> timing.csv
+    fi
+
     
     nT=`ls *.csv *.txt 2>/dev/null | grep timing | wc -l`
     nH=`ls *.csv *.txt 2>/dev/null | grep header | wc -l`
@@ -39,7 +54,7 @@ do
 	timing=timingDummy.txt
     fi
     
-    for input in `ls *.csv *.txt 2>/dev/null | grep -v header | grep -v timing | grep -v convertlog`
+    for input in `ls *.csv *.txt 2>/dev/null | grep -v header | grep -v timing | grep -v convertlog | grep -v stderr`
     do
 	log=convertlog_${input}
 	echo convert_dev $input $header $timing ${mode[${i}]}
