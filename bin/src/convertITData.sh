@@ -34,7 +34,11 @@ do
     fi
 
     if [ ${mode[${i}]} -eq 4 ];then #Accelerometer
-	grep Daq IT7_acc_stderr_*.csv >> timing.csv
+	for bzip in *.bz2
+	do
+	    bunzip2 $bzip
+	done
+	grep Daq IT7_acc_stderr_*.txt >> timing.csv
     fi
 
     

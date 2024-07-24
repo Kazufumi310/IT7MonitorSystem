@@ -172,7 +172,7 @@ void Header::readTimingFile(std::string timingfile){
 	ss>>val;
 	DAQ_start_date_vec.push_back(val);
       }
-    }elseif(first=="DAQ_start:"){
+    }else if(first=="DAQ_start:"){
       inPTPAdjust = false;
       double val;
       ss>>val;

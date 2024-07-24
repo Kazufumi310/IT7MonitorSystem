@@ -37,9 +37,9 @@ elif [ $mode -eq 2 ];then # getData
 fi
 
 
-device=( notused mainPC pressure1 pressure2 strain )
+device=( notused mainPC pressure1 pressure2 strain tourmaline )
 
-for i in 2 3 4
+for i in 2 3 4 5
 do
     if [ $mode -eq 2 ];then	 
         gnome-terminal -- bash -c "echo \"IPdigit = $i\";teensy_ls $i;teensy_get $i $serial/${device[${i}]}; teensy_ls $i; bash"

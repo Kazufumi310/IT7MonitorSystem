@@ -41,7 +41,7 @@ void quickPlot(int nth = 0){
       ch[i] = 0;
     }
   }
-
+  Plotter::getPlotter()->canvas()->SetWindowSize(1200,800);
   Plotter::getPlotter()->canvas()->Divide(3,2);
   int const nPad = 6;
   TH2D *frame[nPad]={0}; //{tourmaline, KELLER, strain, accX, accY, accZ}
