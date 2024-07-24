@@ -89,7 +89,16 @@ void doPTP(bool init = false){
   }
 }
 
-
+void doPTPAction(){
+   char ptpReqFile[] = "data/ptp.request";
+   bool init = false;
+   if(SD.exists(ptpReqFile) ){
+  	Serial.println(F("PTP update request."));
+  	SD.remove(ptpReqFile);
+    init = true;
+   }
+  doPTP(init);
+}
 
 void initPTP()
 {

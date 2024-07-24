@@ -415,7 +415,7 @@ void setup()
 //double logTime=0;
 void loop()
 {
- doPTP();
+ doPTPAction();
   /*
   ptp.update();
   {
