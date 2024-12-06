@@ -3,34 +3,44 @@
 #include "FreeStack.h"
 #include "RingBuf.h"
 
-// Pin must be on first ADC.
-#define ADC_PIN A0
+#define THIS_IS_KELLERPRESSURE
+#define WATERLEAK_SENSOR
+
+
+
 // 400 sector RingBuf - could be larger on Teensy 4.1.
 const size_t RING_BUF_SIZE = 400 * 512;
-//const int RecordTime= 1000000 * 120; //in micros
-//const int RecordTime= 1000000 * 10; //in micros. short time for test
 // Preallocate 1GiB file.
-const uint64_t PRE_ALLOCATE_SIZE = 1ULL << 30;
+const uint64_t LOG_FILE_SIZE = 1ULL << 28;
 //const uint64_t PRE_ALLOCATE_SIZE = 300000;
 
+#define ADCSPEED ADC_SAMPLING_SPEED::VERY_HIGH_SPEED
 
-ADC adc;
-DMAChannel dma(true);
 
-// Log file base name.  Must be six characters or less.
+
+const int nGauges = 1;
+const int readPin[] = {A0,A1,A2,A3,A4,A5,A6,A7}; //only use readPin[0]
+
 #define FILE_BASE_NAME "data/Shk"
 const uint8_t BASE_NAME_SIZE = sizeof(FILE_BASE_NAME) - 1;
 char fileName[32] = FILE_BASE_NAME "00.bin";
+
+//data file
+FsFile file;
+// RingBuf for File type FsFile.
+RingBuf<FsFile, RING_BUF_SIZE> rb;
+
+
+
+ADC *adc = new ADC();
+
+DMAChannel dma(true);
 // Ping-pong DMA buffer.
 DMAMEM static uint16_t __attribute__((aligned(32))) dmaBuf[2][256];
 // Count of DMA interrupts.
 volatile size_t dmaCount;
-// RingBuf for 512 byte sectors.
-RingBuf<FsFile, RING_BUF_SIZE> rb;
-
 // Shared between ISR and background.
 volatile size_t maxBytesUsed;
-
 // Overrun error for write to RingBuf.
 volatile bool overrun;
 
@@ -71,11 +81,6 @@ static void isr() {
 
 
 
-
-// SdFs sd;  <- already written in SdFat 
-// FsFile file; <- move inside takeADCData
-
-
 //////////////////////////
 
 static void startDma() {
@@ -88,8 +93,9 @@ static void startDma() {
   dma.triggerAtHardwareEvent(SOURCE_EVENT);
   
   dma.enable();
-  adc.adc0->enableDMA();
-  adc.adc0->startContinuous(ADC_PIN);
+  adc->adc0->enableDMA();
+//  adc->adc0->startContinuous(ADC_PIN);
+  adc->adc0->startContinuous(readPin[0]);
 }
 
 ///////////////////////////////////
@@ -97,96 +103,30 @@ static void startDma() {
 
 //------------------------------------------------------------------------------
 void stopDma() {
-  adc.adc0->disableDMA();
+  adc->adc0->disableDMA();
   dma.disable();
 }
 
 /////////////////////////////////////
 
-
-void takeADCData(int RecordTime){
-  Serial.print(F("data taking for "));
-  Serial.print(RecordTime/1e6);
-  Serial.println(F(" sec"));
-  dmaCount = 0;
-  maxBytesUsed = 0;
-  overrun = false;
-
-  digitalWriteFast(LED_BUILTIN, !digitalReadFast(LED_BUILTIN));
-
-  while (SD.exists(fileName)) {
-      if (fileName[BASE_NAME_SIZE + 1] != '9') {
-      fileName[BASE_NAME_SIZE + 1]++;
-    } else if (fileName[BASE_NAME_SIZE] != '9') {
-      fileName[BASE_NAME_SIZE + 1] = '0';
-      fileName[BASE_NAME_SIZE]++;
-    } 
+bool logData(){
+  size_t n = rb.bytesUsed();
+  if ((n + file.curPosition()) >= (LOG_FILE_SIZE - 512)) {
+    Serial.println("File full - stopping");
+    return false;
+   //   file.close();
   }
-  FsFile file;
-  file.open(fileName, O_WRONLY | O_CREAT | O_EXCL);
-  if (!file.preAllocate(PRE_ALLOCATE_SIZE)) {
-    SD.errorHalt("file.preAllocate failed");
-  }
-
-#ifdef USINGPTP
-  recordDAQTime("DAQ_start: ");
-#endif
-
-
-  rb.begin(&file);
-  startDma();
-  uint32_t samplingTime = micros();
-  while ((micros()-samplingTime)<=RecordTime) {
-    size_t n = rb.bytesUsed();
-    if ((n + file.curPosition()) >= (PRE_ALLOCATE_SIZE - 512)) {
-      file.close();
-    }
-    if (n >= 512) {
-      if (rb.writeOut(512) != 512) {
-        file.close();
-      }
+  if (n >= 512) {
+    if (rb.writeOut(512) != 512) {
+      Serial.println("writeOut() failed");
+      return false;
+     // file.close();
     }
   }
-
-  digitalWriteFast(LED_BUILTIN, !digitalReadFast(LED_BUILTIN));
-
-  stopDma();
-
-#ifdef USINGPTP
-  recordDAQTime("DAQ_end: ");
-#endif
-
-  if (!rb.sync()) {
-    file.close();
-  }
-
-  file.truncate();
-
-  file.close();
-
-
-//  static int ncalled = 0;
-//  ncalled++;
-//  if(ncalled > 2) exit(1);
- Serial.println(F("finish data taking"));
-
+    return true;
 }
 
-
-void initADC(){
-  Serial.println(F("init ADC"));
-  pinMode(ADC_PIN, INPUT);
-  // Try for max speed.
-  adc.adc0->setAveraging(0);
-  adc.adc0->setResolution(10);
-  adc.adc0->setConversionSpeed(ADC_CONVERSION_SPEED::VERY_HIGH_SPEED);
-  adc.adc0->setSamplingSpeed(ADC_SAMPLING_SPEED::VERY_HIGH_SPEED);
-  
-}
 
 #include "pressurestrainAction.hpp"
 
-void doAction(){
-  doPressureStrainAction();
-}
 

@@ -7,7 +7,7 @@
 
 #define USINGPTP
 
-int const TTLPIN = A10;
+//int const TTLPIN = A10;
 
 bool p2p=false;
 bool master=false;
@@ -19,84 +19,78 @@ l3PTP ptp(master,slave,p2p);
 FsFile timingFile;
 char timingFileName[32]={"data/timing.csv"};
 
-bool ptp_notYet = true;
-void doPTP(bool init = false){
-  static double endTime=-1;
-  static double logTime=-1;
-  static double startTime=-1;
-
-  if(init){
-    endTime = logTime = startTime = -1;
-  }
-
-  double curTime=micros();
-  if(endTime<0){
-    startTime = curTime +5.*1000000;
-    endTime = startTime+10.*1000000;
-    logTime = startTime+1.*1000000;
-  }
-
-  if(curTime>endTime){
-    if(timingFile.isOpen()){ timingFile.close(); }
-    return;
-  }
-  
-
-  ptp.update();
-  if(startTime>curTime) return;
-
-/*
-  {
-    Serial.print("currentTime before starting ptp: ");
-    Serial.println(curTime);
-    timespec ts;
-    qindesign::network::EthernetIEEE1588.readTimer(ts);
-    printTime(timespecToNanoTime(ts));
-  }
-*/
-
- 
-  
-    //digitalWrite(13, ptp.getLockCount() > 5 ? HIGH : LOW);
-
-  if(curTime>logTime){
-    
-    logTime=micros()+1.*1000000;
-    Serial.print("currentTime: ");
-    Serial.println(curTime);
-    Serial.println(ptp.getLockCount());
-    timespec ts;
-    qindesign::network::EthernetIEEE1588.readTimer(ts);
-    
-    NanoTime ptp_nano=timespecToNanoTime(ts);
-    
-    printTime(ptp_nano);
-
-    if(!timingFile.isOpen()){
+void recordDAQTime(const char* info, bool fileCheck=false){
+  if(!timingFile.isOpen()){
       timingFile.open(timingFileName, O_WRONLY | O_CREAT | O_APPEND);
       timingFile.println("micros,ptp_nano,ptp_date");
+  }else if(fileCheck){
+    if(!SD.exists(timingFileName)){
+      timingFile.open(timingFileName,O_WRONLY | O_CREAT | O_EXCL);
+      Serial.printf("new timing file was created.");
     }
+  }
+  double curTime=micros();
+  timespec ts;
+  qindesign::network::EthernetIEEE1588.readTimer(ts);
+  NanoTime ptp_nano=timespecToNanoTime(ts);
+  timingFile.print(info);
+  timingFile.write(" ");
+//  timingFile.print(fileName);
+//  timingFile.write(" ");
+  timingFile.print(curTime);
+  timingFile.write(",");
+  timingFile.print(ptp_nano);
+  timingFile.write(",");
+  char tbuffer[128];
+  printTime(ptp_nano,tbuffer);
+  timingFile.print(tbuffer);
+  timingFile.sync();
+}
 
-    timingFile.print(curTime);
-    timingFile.write(",");
-    timingFile.print(ptp_nano);
-    timingFile.write(",");
+void logPTP(){
+  uint32_t curTime = micros();
+  static uint32_t logTime = curTime;
+
+//  if(curTime>logTime){
+  if(curTime>logTime && !isDAQRunning ){
+    while(curTime>logTime){
+      logTime=logTime+5*1000000;
+    }
     
-    char tbuffer[128];
-    printTime(ptp_nano,tbuffer);
-    timingFile.print(tbuffer);
-    //*/
+    recordDAQTime("PTP check: ",true);
+
+    timespec ts;
+    qindesign::network::EthernetIEEE1588.readTimer(ts);
+    NanoTime ptp_nano=timespecToNanoTime(ts);
+    Serial.print("currentTime: ");
+    Serial.println(curTime);
+    printTime(ptp_nano);
   }
 }
 
-
+void doPTP(bool init = false){
+  ptp.update();
+  logPTP();
+}
+/* // checking file existence is too slow. 
+void doPTPAction(){
+   char ptpReqFile[] = "data/ptp.request";
+   bool init = false;
+   if(SD.exists(ptpReqFile) ){
+  	Serial.println(F("PTP update request."));
+  	SD.remove(ptpReqFile);
+    init = true;
+   }
+  doPTP(init);
+}
+*/
 
 void initPTP()
 {
   Serial.printf("ptp start");
   //  Serial.begin(2000000);
   //pinMode(TTLPIN, OUTPUT);
-  pinMode(13, OUTPUT);
+  //pinMode(13, OUTPUT);
 
   byte mac[6];
   //IPAddress subnetMask{255, 255, 255, 0};
@@ -124,60 +118,15 @@ void initPTP()
   // peripherial: ENET_1588_EVENT1_OUT
   // IOMUX: ALT6
   // teensy pin: 24
+  
   IOMUXC_SW_MUX_CTL_PAD_GPIO_AD_B0_12 = 6;
   qindesign::network::EthernetIEEE1588.setChannelCompareValue(1, NS_PER_S-60);
   qindesign::network::EthernetIEEE1588.setChannelMode(1, qindesign::network::EthernetIEEE1588.TimerChannelModes::kPulseHighOnCompare);
   qindesign::network::EthernetIEEE1588.setChannelOutputPulseWidth(1, 25);
-
-/*
-  double curTime=micros();
-  timespec ts;
-  qindesign::network::EthernetIEEE1588.readTimer(ts);
-
-  Serial.print("currentTime before starting ptp: ");
-  Serial.println(curTime);
-  printTime(timespecToNanoTime(ts));
-  double startTime = curTime;
-  double logTime=curTime+5*1000000;
-  while(1){
-    ptp.update();
-    digitalWrite(13, ptp.getLockCount() > 5 ? HIGH : LOW);
-
-    curTime=micros();
-    if(curTime>logTime){
-      logTime=micros()+5.*1000000;
-      Serial.print("currentTime: ");
-      Serial.println(curTime);
-      Serial.println(ptp.getLockCount());
-      timespec ts;
-      qindesign::network::EthernetIEEE1588.readTimer(ts);
-      printTime(timespecToNanoTime(ts));
-    }
-    if(curTime>startTime+60.*1000000){
-      break;
-    }
-  }
-  */
+  
 }
 
-void recordDAQTime(char* info){
-  if(!timingFile.isOpen()){
-      timingFile.open(timingFileName, O_WRONLY | O_CREAT | O_APPEND);
-      timingFile.println("micros,ptp_nano,ptp_date");
-    }
-  double curTime=micros();
-  timespec ts;
-  qindesign::network::EthernetIEEE1588.readTimer(ts);
-  NanoTime ptp_nano=timespecToNanoTime(ts);
-  timingFile.print(info);
-  timingFile.print(curTime);
-  timingFile.write(",");
-  timingFile.print(ptp_nano);
-  timingFile.write(",");
-  char tbuffer[128];
-  printTime(ptp_nano,tbuffer);
-  timingFile.print(tbuffer);
-}
+
 
 
 

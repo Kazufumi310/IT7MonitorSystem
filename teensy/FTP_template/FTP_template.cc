@@ -20,10 +20,16 @@
 #define FTP_USER_NAME_LEN             64        // Max permissible and default are 64
 #define FTP_USER_PWD_LEN             128        // Max permissible and default are 128
 
+bool isDAQRunning = false;
+char runFlag[32] = "data/isRunning.txt";
+FsFile flagFile;
+
 #include <FTP_Server_Teensy41.h>
 
 // Object for FtpServer
 FtpServer ftpSrv; // Default command port is 21 ( !! without parenthesis !! )
+// Object for WebServer
+EthernetServer server(80);
 
 // change this to match your SD shield or module;
 // Arduino Ethernet shield: pin 4
@@ -39,28 +45,6 @@ FtpServer ftpSrv; // Default command port is 21 ( !! without parenthesis !! )
 
 #include "ptpfunction.hpp"
 #include "sensors.hpp"
-
-// SDClass myfs; // com out by Sato
-
-// set up variables using the SD utility library functions:
-//Sd2Card card; // com out by Sato
-// SdVolume volume; // com out by Sato
-//SdFile root;
-
-/*
-bool getModifyTime(FsFile &fil, DateTimeFields &tm) {
-  uint16_t fat_date, fat_time;
-  if (!fil.getModifyDateTime(&fat_date, &fat_time)) return false;
-  if ((fat_date == 0) && (fat_time == 0)) return false;
-  tm.sec = FS_SECOND(fat_time);
-  tm.min = FS_MINUTE(fat_time);
-  tm.hour = FS_HOUR(fat_time);
-  tm.mday = FS_DAY(fat_date);
-  tm.mon = FS_MONTH(fat_date) - 1;
-  tm.year = FS_YEAR(fat_date) - 1900;
-  return true;
-}
-*/
 
 /*******************************************************************************
 **                                                                            **
@@ -177,6 +161,8 @@ void cardInit()
 {
   // we'll use the initialization code from the utility libraries
   // since we're just testing if the card is working!
+  Serial.println(F("Initializing SD card..."));
+
 //  if (!card.init(SPI_HALF_SPEED, chipSelect))
  if (!SD.begin(chipSelect))
   {
@@ -240,96 +226,10 @@ if (SD.vol()==nullptr)
 
   Serial.print(F("Volume size (Kbytes): ")); volumesize /= 2;    Serial.println(volumesize);
   Serial.print(F("Volume size (Mbytes): ")); volumesize /= 1024; Serial.println(volumesize);
+
+  SD.mkdir("data"); // make data Directory
 }
 
-/*
-void printDirectory(FsFile dir, int numSpaces)
-{
-  while (true)
-  {
-    FsFile entry = dir.openNextFile();
-
-    if (! entry)
-    {
-      //Serial.println("** no more files **");
-      break;
-    }
-
-    printSpaces(numSpaces);
-//    Serial.print(entry.name());
-    char name[21];
-    entry.getName(name,40);
-    Serial.print(name);
-
-    if (entry.isDirectory())
-    {
-      Serial.println("/");
-      printDirectory(entry, numSpaces + 2);
-    }
-    else
-    {
-      // files have sizes, directories do not
-      unsigned int n = log10(entry.size());
-
-      if (n > 10)
-        n = 10;
-
-//      printSpaces(50 - numSpaces - strlen(entry.name()) - n);
-      char name[21];
-      entry.getName(name,40);
-      printSpaces(50 - numSpaces - strlen(name) - n);
-      Serial.print("  "); Serial.print(entry.size(), DEC);
-      
-      DateTimeFields datetime;
-
-//      if (entry.getModifyTime(datetime))
-    if (getModifyTime(entry, datetime))
-      {
-        printSpaces(4);
-        printTime(datetime);
-      }
-
-      Serial.println();
-    }
-    
-    entry.close();
-  }
-}
-
-void printSpaces(int num)
-{
-  for (int i = 0; i < num; i++)
-  {
-    Serial.print(" ");
-  }
-}
-
-void printTime(const DateTimeFields tm)
-{
-  const char *months[12] =
-  {
-      "January",  "February", "March",      "April",    "May",        "June",
-      "July",     "August",   "September",  "October",  "November",   "December"
-  };
-
-  if (tm.hour < 10)
-    Serial.print('0');
-
-  Serial.print(tm.hour);
-  Serial.print(':');
-
-  if (tm.min < 10)
-    Serial.print('0');
-
-  Serial.print(tm.min);
-  Serial.print("  ");
-  Serial.print(months[tm.mon]);
-  Serial.print(" ");
-  Serial.print(tm.mday);
-  Serial.print(", ");
-  Serial.print(tm.year + 1900);
-}
-*/
 
 void SDCardTest()
 {
@@ -345,61 +245,45 @@ void SDCardTest()
 
   Serial.println(F("done."));
 
-  //  FsFile root = SD.open("/");
-  //printDirectory(root, 0); // omit to save RAM space
-  //  Serial.println(F("done!"));
 }
 
-
-void setup()
-{
+void initBasicFunction(){
   Serial.begin(115200);
   while (!Serial && millis() < 5000);
 
   delay(500);
-
-  initPTP();
-
-  Serial.print(F("\nStarting FTP_Server_SDFAT2 on ")); Serial.print(BOARD_NAME);
+   Serial.print(F("\nStarting FTP_Server_SDFAT2 on ")); Serial.print(BOARD_NAME);
   Serial.print(F(" with ")); Serial.println(SHIELD_TYPE);
   Serial.println(FTP_SERVER_TEENSY41_VERSION);
 
-// Uncomment this if Teensy 4.0 has SD card
-#if (defined(ARDUINO_TEENSY41))
+  pinMode(LED_BUILTIN, OUTPUT);
 
-  Serial.println(F("Initializing SD card..."));
+}
 
-  //////////////////////////////////////////////////////////////////
-
-  cardInit();
-
-  ////////////////////////////////////////////////////////////////
-
-  SDCardTest();
-
-  //////////////////////////////////////////////////////////////////
-#endif
-
-  SD.mkdir("data");
-
-  initEthernet();
-
-
-  //////////////////////
-  initADC();
-  //////////////////////
-
-  // Initialize the FTP server
+void initFTP(){
   ftpSrv.init();
   ftpSrv.credentials( FTP_ACCOUNT, FTP_PASSWORD );
 
   Serial.print(F("FTP Server Credentials => account = ")); Serial.print(FTP_ACCOUNT);
   Serial.print(F(", password = ")); Serial.println(FTP_PASSWORD);
-  
-  pinMode(LED_BUILTIN, OUTPUT);
+}
 
-//  sd.begin(SD_CONFIG); <- written in CardInit
+void setup()
+{
+  initBasicFunction();
+  initPTP();
 
+// Uncomment this if Teensy 4.0 has SD card
+#if (defined(ARDUINO_TEENSY41))
+  cardInit();
+  SDCardTest();
+#endif
+
+  initEthernet();
+  initADC();
+  initFTP();
+  // init web server
+  server.begin();
    
   Serial.println(F("finish initialization"));
 
@@ -415,59 +299,13 @@ void setup()
 //double logTime=0;
 void loop()
 {
- doPTP();
-  /*
-  ptp.update();
-  {
-    double curTime=micros();
-    //if(startTime==0) startTime=curTime;
- 
-    if(curTime>logTime){
-      logTime=micros()+5*1000000;
-      Serial.print("currentTime: ");
-      Serial.println(curTime);
-      Serial.println(ptp.getLockCount());
-      timespec ts;
-      qindesign::network::EthernetIEEE1588.readTimer(ts);
-      printTime(timespecToNanoTime(ts));
-
-    }
-  }
-  */
-
+ doAction();
+ if(!isDAQRunning){
+  //  doPTP();
   ftpSrv.service();
-
-  doAction();
-  /*
-    char testReqFile[] = "data/test.request";
-    char runReqFile[] = "data/run.request";
-    char testFinFile[] = "data/test.finish";
-    char runFinFile[] = "data/run.finish";
-    for(int ipat=0;ipat<2;ipat++){
-      char* reqFile;
-      char* finFile;
-      int RecordTime;
-      if(ipat==0){
-	reqFile = testReqFile;
-	finFile = testFinFile;
-	RecordTime = 1000000*5;// in micro. i.e., = 5 sec
-      }
-      if(ipat==1){
-	reqFile = runReqFile;
-	finFile = runFinFile;
-	RecordTime = 1000000*120;// in micro. i.e., = 120 sec
-      }
-      
-      if(SD.exists(reqFile) ){
-	Serial.println(F("A request file is found."));
-	SD.remove(reqFile);
-	takeADCData(RecordTime);
-	FsFile dataFile = SD.open(finFile, FILE_WRITE);
-	dataFile.close();
-      }
-    }
-  */
-  
+ }
+ doPTP();
+ //ftpSrv.service();
 }
 
 
